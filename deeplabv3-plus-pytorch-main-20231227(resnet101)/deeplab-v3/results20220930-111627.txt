@@ -1,0 +1,24 @@
+[epoch: 0]
+train_loss: 1.5905
+lr: 0.000100
+global correct: 64.3
+average row correct: ['0.0', '0.0', '0.0', '100.0']
+IoU: ['0.0', '0.0', '0.0', '64.3']
+mean IoU: 16.1
+
+[epoch: 1]
+train_loss: 1.1067
+lr: 0.000100
+global correct: 64.3
+average row correct: ['0.0', '0.0', '0.0', '100.0']
+IoU: ['0.0', '0.0', '0.0', '64.3']
+mean IoU: 16.1
+
+[epoch: 2]
+train_loss: 0.9811
+lr: 0.000099
+global correct: 64.6
+average row correct: ['0.0', '3.5', '0.0', '100.0']
+IoU: ['0.0', '3.4', '0.0', '64.6']
+mean IoU: 17.0
+
