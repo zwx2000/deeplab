@@ -1,59 +1,122 @@
-# FCN(Fully Convolutional Networks for Semantic Segmentation)
+## PSPnet：Pyramid Scene Parsing Network语义分割模型在Pytorch当中的实现
+---
 
-## 该项目主要是来自pytorch官方torchvision模块中的源码
-* https://github.com/pytorch/vision/tree/main/torchvision/models/segmentation
+### 目录
+1. [仓库更新 Top News](#仓库更新)
+2. [相关仓库 Related code](#相关仓库)
+3. [性能情况 Performance](#性能情况)
+4. [所需环境 Environment](#所需环境)
+5. [文件下载 Download](#文件下载)
+6. [训练步骤 How2train](#训练步骤)
+7. [预测步骤 How2predict](#预测步骤)
+8. [评估步骤 miou](#评估步骤)
+9. [参考资料 Reference](#Reference)
 
-## 环境配置：
-* Python3.6/3.7/3.8
-* Pytorch1.10
-* Ubuntu或Centos(Windows暂不支持多GPU训练)
-* 最好使用GPU训练
-* 详细环境配置见```requirements.txt```
+## Top News
+**`2022-04`**:**支持多GPU训练。**  
 
-## 文件结构：
+**`2022-03`**:**进行大幅度更新、支持step、cos学习率下降法、支持adam、sgd优化器选择、支持学习率根据batch_size自适应调整。**  
+BiliBili视频中的原仓库地址为：https://github.com/bubbliiiing/pspnet-pytorch/tree/bilibili
+
+**`2020-08`**:**创建仓库、支持多backbone、支持数据miou评估、标注数据处理、大量注释等。**
+
+## 相关仓库
+| 模型 | 路径 |
+| :----- | :----- |
+Unet | https://github.com/bubbliiiing/unet-pytorch  
+PSPnet | https://github.com/bubbliiiing/pspnet-pytorch
+deeplabv3+ | https://github.com/bubbliiiing/deeplabv3-plus-pytorch
+hrnet | https://github.com/bubbliiiing/hrnet-pytorch
+
+### 性能情况
+| 训练数据集 | 权值文件名称 | 测试数据集 | 输入图片大小 | mIOU | 
+| :-----: | :-----: | :------: | :------: | :------: | 
+| VOC12+SBD | [pspnet_mobilenetv2.pth](https://github.com/bubbliiiing/pspnet-pytorch/releases/download/v1.0/pspnet_mobilenetv2.pth) | VOC-Val12 | 473x473| 68.59 | 
+| VOC12+SBD | [pspnet_resnet50.pth](https://github.com/bubbliiiing/pspnet-pytorch/releases/download/v1.0/pspnet_resnet50.pth) | VOC-Val12 | 473x473| 81.44 | 
+
+### 所需环境
+torch==1.2.0  
+
+### 文件下载
+训练所需的pspnet_mobilenetv2.pth和pspnet_resnet50.pth可在百度网盘中下载。    
+链接: https://pan.baidu.com/s/1Ecz-l6lFcf6HmeX_pLCXZw 提取码: wps9    
+
+VOC拓展数据集的百度网盘如下：  
+链接: https://pan.baidu.com/s/1vkk3lMheUm6IjTXznlg7Ng 提取码: 44mk   
+
+### 训练步骤
+#### a、训练voc数据集
+1、将我提供的voc数据集放入VOCdevkit中（无需运行voc_annotation.py）。  
+2、在train.py中设置对应参数，默认参数已经对应voc数据集所需要的参数了，所以只要修改backbone和model_path即可。  
+3、运行train.py进行训练。  
+
+#### b、训练自己的数据集
+1、本文使用VOC格式进行训练。  
+2、训练前将标签文件放在VOCdevkit文件夹下的VOC2007文件夹下的SegmentationClass中。    
+3、训练前将图片文件放在VOCdevkit文件夹下的VOC2007文件夹下的JPEGImages中。    
+4、在训练前利用voc_annotation.py文件生成对应的txt。    
+5、在train.py文件夹下面，选择自己要使用的主干模型和下采样因子。本文提供的主干模型有mobilenet和resnet50。下采样因子可以在8和16中选择。需要注意的是，预训练模型需要和主干模型相对应。   
+6、注意修改train.py的num_classes为分类个数+1。    
+7、运行train.py即可开始训练。  
+
+### 预测步骤
+#### a、使用预训练权重
+1. 下载完库后解压，如果想用backbone为mobilenet的进行预测，直接运行predict.py就可以了；如果想要利用backbone为resnet50的进行预测，在百度网盘下载pspnet_resnet50.pth，放入model_data，修改pspnet.py的backbone和model_path之后再运行predict.py，输入。  
+```python
+img/street.jpg
+```  
+2. 在predict.py里面进行设置可以进行fps测试和video视频检测。    
+#### b、使用自己训练的权重
+1. 按照训练步骤训练。    
+2. 在pspnet.py文件里面，在如下部分修改model_path和backbone使其对应训练好的文件；**model_path对应logs文件夹下面的权值文件，backbone是所使用的主干特征提取网络**。    
+```python
+_defaults = {
+    #-------------------------------------------------------------------#
+    #   model_path指向logs文件夹下的权值文件
+    #   训练好后logs文件夹下存在多个权值文件，选择验证集损失较低的即可。
+    #   验证集损失较低不代表miou较高，仅代表该权值在验证集上泛化性能较好。
+    #-------------------------------------------------------------------#
+    "model_path"        : 'model_data/pspnet_mobilenetv2.pth',
+    #----------------------------------------#
+    #   所需要区分的类的个数+1
+    #----------------------------------------#
+    "num_classes"       : 21,
+    #----------------------------------------#
+    #   所使用的的主干网络：mobilenet、resnet50
+    #----------------------------------------#
+    "backbone"          : "mobilenet",
+    #----------------------------------------#
+    #   输入图片的大小
+    #----------------------------------------#
+    "input_shape"       : [473, 473],
+    #----------------------------------------#
+    #   下采样的倍数，一般可选的为8和16
+    #   与训练时设置的一样即可
+    #----------------------------------------#
+    "downsample_factor" : 16,
+    #--------------------------------#
+    #   blend参数用于控制是否
+    #   让识别结果和原图混合
+    #--------------------------------#
+    "blend"             : True,
+    #--------------------------------#
+    #   是否使用Cuda
+    #   没有GPU可以设置成False
+    #--------------------------------#
+    "cuda"              : True,
+}
 ```
-  ├── src: 模型的backbone以及FCN的搭建
-  ├── train_utils: 训练、验证以及多GPU训练相关模块
-  ├── my_dataset.py: 自定义dataset用于读取VOC数据集
-  ├── train.py: 以fcn_resnet50(这里使用了Dilated/Atrous Convolution)进行训练
-  ├── train_multi_GPU.py: 针对使用多GPU的用户使用
-  ├── predict.py: 简易的预测脚本，使用训练好的权重进行预测测试
-  ├── validation.py: 利用训练好的权重验证/测试数据的mIoU等指标，并生成record_mAP.txt文件
-  └── pascal_voc_classes.json: pascal_voc标签文件
-```
+3. 运行predict.py，输入    
+```python
+img/street.jpg
+```   
+4. 在predict.py里面进行设置可以进行fps测试和video视频检测。    
 
-## 预训练权重下载地址：
-* 注意：官方提供的预训练权重是在COCO上预训练得到的，训练时只针对和PASCAL VOC相同的类别进行了训练，所以类别数是21(包括背景)
-* fcn_resnet50: https://download.pytorch.org/models/fcn_resnet50_coco-1167a1af.pth
-* fcn_resnet101: https://download.pytorch.org/models/fcn_resnet101_coco-7ecb50ca.pth
-* 注意，下载的预训练权重记得要重命名，比如在train.py中读取的是```fcn_resnet50_coco.pth```文件，
-  不是```fcn_resnet50_coco-1167a1af.pth```
- 
- 
-## 数据集，本例程使用的是PASCAL VOC2012数据集
-* Pascal VOC2012 train/val数据集下载地址：http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
-* 如果不了解数据集或者想使用自己的数据集进行训练，请参考我的博文: https://blog.csdn.net/qq_37541097/article/details/115787033
+### 评估步骤
+1、设置get_miou.py里面的num_classes为预测的类的数量加1。  
+2、设置get_miou.py里面的name_classes为需要去区分的类别。  
+3、运行get_miou.py即可获得miou大小。  
 
-## 训练方法
-* 确保提前准备好数据集
-* 确保提前下载好对应预训练模型权重
-* 若要使用单GPU或者CPU训练，直接使用train.py训练脚本
-* 若要使用多GPU训练，使用```torchrun --nproc_per_node=8 train_multi_GPU.py```指令,```nproc_per_node```参数为使用GPU数量
-* 如果想指定使用哪些GPU设备可在指令前加上```CUDA_VISIBLE_DEVICES=0,3```(例如我只要使用设备中的第1块和第4块GPU设备)
-* ```CUDA_VISIBLE_DEVICES=0,3 torchrun --nproc_per_node=2 train_multi_GPU.py```
-
-## 注意事项
-* 在使用训练脚本时，注意要将'--data-path'(VOC_root)设置为自己存放'VOCdevkit'文件夹所在的**根目录**
-* 在使用预测脚本时，要将'weights_path'设置为你自己生成的权重路径。
-* 使用validation文件时，注意确保你的验证集或者测试集中必须包含每个类别的目标，并且使用时只需要修改'--num-classes'、'--aux'、'--data-path'和'--weights'即可，其他代码尽量不要改动
-
-## 如果对FCN原理不是很理解可参考我的bilibili
-* https://www.bilibili.com/video/BV1J3411C7zd
-* https://www.bilibili.com/video/BV1ev411u7TX
-
-## 进一步了解该项目，以及对FCN代码的分析可参考我的bilibili
-* https://www.bilibili.com/video/BV19q4y1971Q
-
-## Pytorch官方实现的FCN网络框架图
-![torch_fcn](torch_fcn.png)
-
+### Reference
+https://github.com/ggyyzm/pytorch_segmentation  
+https://github.com/bonlime/keras-deeplab-v3-plus

@@ -1,11 +1,11 @@
 #--------------------------------------------#
-#   该部分代码用于看网络结构
+#   该部分代码只用于看网络结构，并非测试代码
 #--------------------------------------------#
 import torch
 from thop import clever_format, profile
 from torchsummary import summary
 
-from nets.deeplabv3_plus import DeepLab
+from nets.pspnet import PSPNet
 
 if __name__ == "__main__":
     input_shape     = [512, 512]
@@ -13,7 +13,7 @@ if __name__ == "__main__":
     backbone        = 'mobilenet'
     
     device  = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model   = DeepLab(num_classes=num_classes, backbone=backbone, downsample_factor=16, pretrained=False).to(device)
+    model = PSPNet(num_classes=num_classes, backbone=backbone, downsample_factor=16, aux_branch=False, pretrained=False).to(device)
     summary(model, (3, input_shape[0], input_shape[1]))
     
     dummy_input     = torch.randn(1, 3, input_shape[0], input_shape[1]).to(device)
